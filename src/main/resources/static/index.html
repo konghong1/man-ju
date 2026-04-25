@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Man-Ju AI 漫剧生成器</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="bg-shape bg-shape-left"></div>
+<div class="bg-shape bg-shape-right"></div>
+
+<main class="container">
+    <header class="hero">
+        <p class="tag">LONG-RUNNING HARNESS MVP</p>
+        <h1>Man-Ju AI 漫剧生成器</h1>
+        <p class="subtitle">输入故事设定，自动生成分幕剧情与分镜提示词。</p>
+    </header>
+
+    <section class="panel">
+        <form id="generate-form">
+            <div class="grid">
+                <label>标题<input name="title" required value="雨夜代号"></label>
+                <label>类型<input name="genre" required value="赛博悬疑"></label>
+                <label>基调<input name="tone" required value="紧张"></label>
+                <label>受众<input name="targetAudience" required value="青年"></label>
+                <label>篇幅
+                    <select name="episodeLength">
+                        <option value="SHORT">短篇</option>
+                        <option value="MEDIUM" selected>中篇</option>
+                        <option value="LONG">长篇</option>
+                    </select>
+                </label>
+                <label>视觉风格<input name="visualStyle" required value="黑白网点+霓虹高对比"></label>
+                <label>主角<input name="protagonist" required value="前警探 林岚"></label>
+                <label>核心冲突<input name="conflict" required value="城市中枢AI试图抹除真相"></label>
+            </div>
+            <label class="block">故事前提<textarea name="premise" rows="3" required>林岚收到已故搭档发来的延迟讯息，必须在天亮前解开城市中枢被篡改的源头。</textarea></label>
+            <button id="submit-btn" type="submit">生成漫剧</button>
+        </form>
+    </section>
+
+    <section class="panel output">
+        <h2>生成结果</h2>
+        <p id="status">等待生成...</p>
+        <div id="result"></div>
+    </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

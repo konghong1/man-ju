@@ -1,0 +1,21 @@
+2026-04-25
+- Initialized project plan from Anthropic harness principles.
+- Added design document and feature checklist skeleton.
+- Implemented Spring Boot backend (generation service, REST API, file repository).
+- Implemented web UI at `/` for prompt input and structured result rendering.
+- Added `init.sh` and `init.ps1` for harness-style bootstrap/health checks.
+- Added integration tests for create/fetch flow, health endpoint, and welcome-page routing.
+- Verification:
+  - `mvn test` passed.
+  - `powershell -ExecutionPolicy Bypass -File .\init.ps1` passed.
+- Re-planned architecture with detailed module-level design and task decomposition:
+  - Added `docs/design-detailed.md`.
+  - Added `docs/task-breakdown-v2.md`.
+  - Rebuilt `feature_list.json` into granular multi-module backlog with status fields.
+- Updated planning per review feedback:
+  - Frontend stack switched to Vue3 + TypeScript + Vite + Pinia.
+  - Added task flowcharts in `docs/task-flowchart-v2.md`.
+- Upgraded to V3 multi-provider design:
+  - Added LLM Gateway architecture (routing/fallback/circuit-breaker/cost/metrics).
+  - Expanded task breakdown with dedicated LLM module tasks.
+  - Updated feature backlog to include provider-level execution items.

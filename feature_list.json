@@ -1,0 +1,242 @@
+[
+  {
+    "id": "CORE-001",
+    "module": "Core",
+    "name": "Spring Boot baseline",
+    "status": "done",
+    "acceptance": "GET /api/health returns status=ok",
+    "passes": true
+  },
+  {
+    "id": "CORE-002",
+    "module": "Core",
+    "name": "Project create/read API",
+    "status": "done",
+    "acceptance": "POST /api/projects and GET /api/projects/{id} work",
+    "passes": true
+  },
+  {
+    "id": "FE-001",
+    "module": "Frontend",
+    "name": "Vue3 scaffold and router",
+    "status": "pending",
+    "acceptance": "Vue app boots with defined routes",
+    "passes": false
+  },
+  {
+    "id": "FE-002",
+    "module": "Frontend",
+    "name": "Pinia stores for project/job/llm/ui",
+    "status": "pending",
+    "acceptance": "State survives refresh and route changes",
+    "passes": false
+  },
+  {
+    "id": "FE-003",
+    "module": "Frontend",
+    "name": "Workspace pages and editors",
+    "status": "pending",
+    "acceptance": "Scene/panel edits can be saved and displayed",
+    "passes": false
+  },
+  {
+    "id": "FE-004",
+    "module": "Frontend",
+    "name": "Model settings and metrics pages",
+    "status": "pending",
+    "acceptance": "Can enable providers and view runtime metrics",
+    "passes": false
+  },
+  {
+    "id": "BE-001",
+    "module": "Backend",
+    "name": "Harness orchestrator S1-S7",
+    "status": "pending",
+    "acceptance": "Step outputs and metrics are persisted",
+    "passes": false
+  },
+  {
+    "id": "BE-002",
+    "module": "Backend",
+    "name": "Retry/resume/versioning/SSE",
+    "status": "pending",
+    "acceptance": "Failed steps can resume and stream events",
+    "passes": false
+  },
+  {
+    "id": "LLM-001",
+    "module": "LLM",
+    "name": "Unified LlmClient contract",
+    "status": "pending",
+    "acceptance": "All providers implement chat/structured/stream",
+    "passes": false
+  },
+  {
+    "id": "LLM-002",
+    "module": "LLM",
+    "name": "Model registry and routing policy",
+    "status": "pending",
+    "acceptance": "Step-level routing can be configured",
+    "passes": false
+  },
+  {
+    "id": "LLM-003",
+    "module": "LLM",
+    "name": "OpenAI adapter",
+    "status": "pending",
+    "acceptance": "OpenAI call works in one harness step",
+    "passes": false
+  },
+  {
+    "id": "LLM-004",
+    "module": "LLM",
+    "name": "Anthropic adapter",
+    "status": "pending",
+    "acceptance": "Anthropic call works in one harness step",
+    "passes": false
+  },
+  {
+    "id": "LLM-005",
+    "module": "LLM",
+    "name": "Gemini adapter",
+    "status": "pending",
+    "acceptance": "Gemini call works in one harness step",
+    "passes": false
+  },
+  {
+    "id": "LLM-006",
+    "module": "LLM",
+    "name": "Azure OpenAI adapter",
+    "status": "pending",
+    "acceptance": "Azure OpenAI call works in one harness step",
+    "passes": false
+  },
+  {
+    "id": "LLM-007",
+    "module": "LLM",
+    "name": "OpenAI-compatible adapter",
+    "status": "pending",
+    "acceptance": "Custom baseURL providers are supported",
+    "passes": false
+  },
+  {
+    "id": "LLM-008",
+    "module": "LLM",
+    "name": "Ollama local adapter",
+    "status": "pending",
+    "acceptance": "Local model can be used as fallback",
+    "passes": false
+  },
+  {
+    "id": "LLM-009",
+    "module": "LLM",
+    "name": "Fallback chain and retry",
+    "status": "pending",
+    "acceptance": "Primary failure triggers secondary/fallback",
+    "passes": false
+  },
+  {
+    "id": "LLM-010",
+    "module": "LLM",
+    "name": "Circuit breaker and rate limiter",
+    "status": "pending",
+    "acceptance": "Provider faults are isolated",
+    "passes": false
+  },
+  {
+    "id": "LLM-011",
+    "module": "LLM",
+    "name": "JSON schema output enforcement",
+    "status": "pending",
+    "acceptance": "Invalid outputs are retried or repaired",
+    "passes": false
+  },
+  {
+    "id": "LLM-012",
+    "module": "LLM",
+    "name": "Token/cost metering",
+    "status": "pending",
+    "acceptance": "Each step tracks token usage and cost",
+    "passes": false
+  },
+  {
+    "id": "LLM-013",
+    "module": "LLM",
+    "name": "Budget guardrails",
+    "status": "pending",
+    "acceptance": "Over-budget requests trigger downgrade policy",
+    "passes": false
+  },
+  {
+    "id": "LLM-014",
+    "module": "LLM",
+    "name": "Provider and route management APIs",
+    "status": "pending",
+    "acceptance": "Frontend can configure providers/routes",
+    "passes": false
+  },
+  {
+    "id": "LLM-015",
+    "module": "LLM",
+    "name": "Gateway audit and redaction",
+    "status": "pending",
+    "acceptance": "No secrets in logs",
+    "passes": false
+  },
+  {
+    "id": "INF-001",
+    "module": "Infra",
+    "name": "Storage abstraction and migration path",
+    "status": "pending",
+    "acceptance": "File and DB modes can be switched",
+    "passes": false
+  },
+  {
+    "id": "INF-002",
+    "module": "Infra",
+    "name": "Metrics and alerting",
+    "status": "pending",
+    "acceptance": "Provider/model/step metrics are queryable",
+    "passes": false
+  },
+  {
+    "id": "QA-001",
+    "module": "QA",
+    "name": "Provider compatibility matrix tests",
+    "status": "pending",
+    "acceptance": "All enabled providers pass smoke scenarios",
+    "passes": false
+  },
+  {
+    "id": "QA-002",
+    "module": "QA",
+    "name": "Failover and chaos tests",
+    "status": "pending",
+    "acceptance": "Injected failures trigger fallback reliably",
+    "passes": false
+  },
+  {
+    "id": "QA-003",
+    "module": "QA",
+    "name": "End-to-end workflow tests",
+    "status": "pending",
+    "acceptance": "Create->generate->edit->export passes",
+    "passes": false
+  },
+  {
+    "id": "OPS-001",
+    "module": "Ops",
+    "name": "Unified init script",
+    "status": "pending",
+    "acceptance": "One command validates full stack startup",
+    "passes": false
+  },
+  {
+    "id": "OPS-002",
+    "module": "Ops",
+    "name": "CI/CD pipeline",
+    "status": "pending",
+    "acceptance": "PR checks include lint/test/e2e",
+    "passes": false
+  }
+]

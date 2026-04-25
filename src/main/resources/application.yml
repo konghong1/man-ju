@@ -1,0 +1,6 @@
+server:
+  port: 8080
+
+manju:
+  storage-dir: data/projects
+  panels-per-scene: 3
