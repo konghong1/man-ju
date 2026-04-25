@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useLlmStore } from "../stores/llm";
 import { useMetricsStore } from "../stores/metrics";
@@ -12,6 +13,11 @@ const { providerMetrics, lastUpdatedAt } = storeToRefs(metricsStore);
 
 const providerOptions = computed(() => providers.value.map((item) => item.key));
 const stepKeys = computed(() => Object.keys(routeByStep.value));
+
+onMounted(async () => {
+  await llmStore.refreshConfig();
+  await metricsStore.refreshMetrics();
+});
 </script>
 
 <template>

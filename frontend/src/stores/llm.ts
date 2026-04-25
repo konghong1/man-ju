@@ -11,13 +11,25 @@ type LlmState = {
   routeByStep: Record<string, string>;
 };
 
+const DEFAULT_PROJECT_ID = "demo";
+
+async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+    ...init,
+  });
+  if (!response.ok) {
+    throw new Error(`API ${path} failed with ${response.status}`);
+  }
+  return (await response.json()) as T;
+}
+
 export const useLlmStore = defineStore("llm", {
   state: (): LlmState => ({
-    providers: [
-      { key: "openai", enabled: true, model: "gpt-5.2" },
-      { key: "anthropic", enabled: true, model: "claude-opus-4.1" },
-      { key: "gemini", enabled: false, model: "gemini-2.5-pro" },
-    ],
+    providers: [],
     routeByStep: {
       S2_STORY_PLAN: "openai",
       S3_SCENE_WRITE: "anthropic",
@@ -30,10 +42,43 @@ export const useLlmStore = defineStore("llm", {
     },
   },
   actions: {
-    setProviderEnabled(key: string, enabled: boolean) {
+    async refreshConfig(projectId = DEFAULT_PROJECT_ID) {
+      try {
+        const [providerStates, models, routes] = await Promise.all([
+          apiRequest<Record<string, boolean>>("/api/llm/providers"),
+          apiRequest<Array<{ provider: string; modelId: string }>>("/api/llm/models"),
+          apiRequest<Record<string, string>>(`/api/llm/routes/project/${projectId}`),
+        ]);
+
+        const modelByProvider: Record<string, string> = {};
+        for (const item of models) {
+          if (!modelByProvider[item.provider]) {
+            modelByProvider[item.provider] = item.modelId;
+          }
+        }
+
+        this.providers = Object.entries(providerStates).map(([provider, enabled]) => ({
+          key: provider,
+          enabled,
+          model: modelByProvider[provider] ?? provider,
+        }));
+        this.routeByStep = { ...routes };
+      } catch (error) {
+        console.warn("Failed to refresh LLM config", error);
+      }
+    },
+    async setProviderEnabled(key: string, enabled: boolean) {
       const target = this.providers.find((provider) => provider.key === key);
       if (target) {
         target.enabled = enabled;
+      }
+      try {
+        await apiRequest<Record<string, boolean>>(`/api/llm/providers/${key}`, {
+          method: "PATCH",
+          body: JSON.stringify({ enabled }),
+        });
+      } catch (error) {
+        console.warn(`Failed to update provider ${key}`, error);
       }
     },
     setProviderModel(key: string, model: string) {
@@ -42,8 +87,16 @@ export const useLlmStore = defineStore("llm", {
         target.model = model;
       }
     },
-    setStepRoute(step: string, providerKey: string) {
+    async setStepRoute(step: string, providerKey: string, projectId = DEFAULT_PROJECT_ID) {
       this.routeByStep[step] = providerKey;
+      try {
+        await apiRequest<Record<string, string>>(`/api/llm/routes/project/${projectId}`, {
+          method: "PUT",
+          body: JSON.stringify({ routes: this.routeByStep }),
+        });
+      } catch (error) {
+        console.warn("Failed to update step route", error);
+      }
     },
   },
 });
