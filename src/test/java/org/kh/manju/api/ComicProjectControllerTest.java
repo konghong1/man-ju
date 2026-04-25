@@ -157,7 +157,7 @@ class ComicProjectControllerTest {
     }
 
     @Test
-    void shouldFallbackToInternalWhenProviderDisabled() throws Exception {
+    void shouldFallbackToSecondaryWhenPrimaryProviderDisabled() throws Exception {
         mockMvc.perform(patch("/api/llm/providers/{provider}", "openai")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -171,6 +171,42 @@ class ComicProjectControllerTest {
         String payload = """
                 {
                   "title": "provider-disable-test",
+                  "genre": "sci-fi",
+                  "tone": "tense",
+                  "targetAudience": "youth",
+                  "episodeLength": "SHORT",
+                  "premise": "route fallback",
+                  "protagonist": "tester",
+                  "conflict": "provider unavailable",
+                  "visualStyle": "mono",
+                  "language": "en"
+                }
+                """;
+
+        mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.generationTrace[1].provider").value("anthropic"));
+    }
+
+    @Test
+    void shouldFallbackToInternalWhenAllExternalProvidersDisabled() throws Exception {
+        String[] providers = {"openai", "anthropic", "gemini"};
+        for (String provider : providers) {
+            mockMvc.perform(patch("/api/llm/providers/{provider}", provider)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "enabled": false
+                                    }
+                                    """))
+                    .andExpect(status().isOk());
+        }
+
+        String payload = """
+                {
+                  "title": "all-disabled-fallback-test",
                   "genre": "sci-fi",
                   "tone": "tense",
                   "targetAudience": "youth",

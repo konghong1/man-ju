@@ -71,3 +71,9 @@
   - Extended model catalog entries for the new providers.
   - Added integration test matrix to verify route -> provider execution for all three.
   - Verified with `mvn test`.
+- Task LLM-009 and LLM-012 completed:
+  - Added provider fallback execution service with per-provider fallback chains.
+  - Routed harness LLM invocation through fallback service.
+  - Added tests for primary-disabled fallback and full external-disabled fallback.
+  - Step trace now consistently records token/cost metrics from provider calls.
+  - Verified with `mvn test`.

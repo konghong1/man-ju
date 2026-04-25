@@ -131,9 +131,9 @@
     "id": "LLM-009",
     "module": "LLM",
     "name": "Fallback chain and retry",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Primary failure triggers secondary/fallback",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-010",
@@ -155,9 +155,9 @@
     "id": "LLM-012",
     "module": "LLM",
     "name": "Token/cost metering",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Each step tracks token usage and cost",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-013",

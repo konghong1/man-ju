@@ -13,11 +13,9 @@ public class RoutingPolicyService {
     private final Map<String, Map<GenerationStep, String>> projectRoutes = new ConcurrentHashMap<>();
     private final Map<GenerationStep, String> defaultRoutes = new EnumMap<>(GenerationStep.class);
     private final LlmClientRegistry llmClientRegistry;
-    private final ProviderStateService providerStateService;
 
-    public RoutingPolicyService(LlmClientRegistry llmClientRegistry, ProviderStateService providerStateService) {
+    public RoutingPolicyService(LlmClientRegistry llmClientRegistry) {
         this.llmClientRegistry = llmClientRegistry;
-        this.providerStateService = providerStateService;
 
         defaultRoutes.put(GenerationStep.S1_INPUT_NORMALIZE, "internal");
         defaultRoutes.put(GenerationStep.S2_STORY_PLAN, "openai");
@@ -31,11 +29,8 @@ public class RoutingPolicyService {
     public String resolveProvider(String projectId, GenerationStep step) {
         Map<GenerationStep, String> projectPolicy = projectRoutes.get(projectId);
         String provider = projectPolicy == null ? null : projectPolicy.get(step);
-        if (provider == null || !llmClientRegistry.hasProvider(provider) || !providerStateService.isEnabled(provider)) {
+        if (provider == null || !llmClientRegistry.hasProvider(provider)) {
             provider = defaultRoutes.getOrDefault(step, "internal");
-        }
-        if (!providerStateService.isEnabled(provider)) {
-            provider = "internal";
         }
         return provider;
     }

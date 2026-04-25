@@ -2,9 +2,8 @@ package org.kh.manju.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.kh.manju.llm.ChatRequest;
-import org.kh.manju.llm.ChatResult;
-import org.kh.manju.llm.LlmClientRegistry;
+import org.kh.manju.llm.LlmFallbackService;
+import org.kh.manju.llm.LlmInvocationResult;
 import org.kh.manju.llm.ModelCatalogService;
 import org.kh.manju.llm.RoutingPolicyService;
 import org.kh.manju.model.CreateProjectRequest;
@@ -30,20 +29,20 @@ public class HarnessOrchestrator {
 
     private final ComicDraftGenerator draftGenerator;
     private final ObjectMapper objectMapper;
-    private final LlmClientRegistry llmClientRegistry;
+    private final LlmFallbackService llmFallbackService;
     private final RoutingPolicyService routingPolicyService;
     private final ModelCatalogService modelCatalogService;
 
     public HarnessOrchestrator(
             ComicDraftGenerator draftGenerator,
             ObjectMapper objectMapper,
-            LlmClientRegistry llmClientRegistry,
+            LlmFallbackService llmFallbackService,
             RoutingPolicyService routingPolicyService,
             ModelCatalogService modelCatalogService
     ) {
         this.draftGenerator = draftGenerator;
         this.objectMapper = objectMapper;
-        this.llmClientRegistry = llmClientRegistry;
+        this.llmFallbackService = llmFallbackService;
         this.routingPolicyService = routingPolicyService;
         this.modelCatalogService = modelCatalogService;
     }
@@ -149,26 +148,21 @@ public class HarnessOrchestrator {
             Supplier<T> action
     ) {
         Instant startedAt = Instant.now();
-        String provider = routingPolicyService.resolveProvider(projectId, step);
-        String model = modelCatalogService.defaultModelForProvider(provider);
+        String primaryProvider = routingPolicyService.resolveProvider(projectId, step);
+        String provider = primaryProvider;
+        String model = modelCatalogService.defaultModelForProvider(primaryProvider);
 
         try {
             JsonNode inputJson = objectMapper.valueToTree(input);
-            ChatResult llmMetadata = "internal".equals(provider)
-                    ? null
-                    : llmClientRegistry.resolve(provider).chat(new ChatRequest(
-                    "step:" + step.name(),
-                    inputJson.toString(),
-                    model,
-                    0.2,
-                    1600
-            ));
+            LlmInvocationResult llmMetadata = llmFallbackService.invokeWithFallback(primaryProvider, step, inputJson);
+            provider = llmMetadata.providerUsed();
+            model = llmMetadata.modelUsed();
 
             T output = action.get();
             Instant endedAt = Instant.now();
             JsonNode outputJson = objectMapper.valueToTree(output);
-            int inputTokens = llmMetadata == null ? estimateTokens(inputJson) : llmMetadata.inputTokens();
-            int outputTokens = llmMetadata == null ? estimateTokens(outputJson) : llmMetadata.outputTokens();
+            int inputTokens = llmMetadata.chatResult().inputTokens();
+            int outputTokens = llmMetadata.chatResult().outputTokens();
             trace.add(new GenerationStepResult(
                     step,
                     StepStatus.SUCCESS,
@@ -180,7 +174,7 @@ public class HarnessOrchestrator {
                     outputTokens,
                     estimateCostUsd(inputTokens, outputTokens),
                     Duration.between(startedAt, endedAt).toMillis(),
-                    0,
+                    llmMetadata.retries(),
                     null,
                     startedAt,
                     endedAt
