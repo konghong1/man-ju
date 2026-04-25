@@ -82,3 +82,32 @@
   - Added automatic output repair path and trace retry increment on repair.
   - Added unit tests for repair and valid-pass behavior.
   - Verified with `mvn test`.
+- Task BE-002 completed:
+  - Added independent Job domain with file persistence (`queued/running/succeeded/failed`).
+  - Added resume-from-step execution path in harness (with `SKIPPED` prefix trace reuse).
+  - Added job APIs: `GET /api/jobs/{id}`, `POST /api/jobs/{id}/retry`, `GET /api/jobs/{id}/events` (SSE replay).
+  - Added project version APIs: `GET /api/projects/{id}/versions`, `POST /api/projects/{id}/rollback`.
+  - Added rollback request model and illegal-argument API mapping.
+  - Extended integration tests to cover job/version/event/retry/rollback flows.
+  - Verified with `mvn test`.
+- Task LLM-010 completed:
+  - Added provider resilience module with in-memory circuit breaker and per-provider rate limiting.
+  - Wired fallback execution to honor provider enable-state + resilience checks.
+  - On provider failure, breaker state is updated and subsequent calls can skip faulty providers.
+  - Added unit tests for circuit-open fallback behavior and rate-limit-triggered fallback.
+  - Verified with `mvn test`.
+- Task LLM-013 completed:
+  - Added project-level budget guard service to evaluate historical + current run LLM cost.
+  - Budget overflow now downgrades provider selection to `internal` before fallback execution.
+  - Added low-budget integration test proving step-level provider downgrade behavior.
+  - Verified with `mvn test`.
+- Task LLM-015 completed:
+  - Added LLM gateway audit service with sensitive-field redaction (key/token/password/secret).
+  - Wired fallback success/failure execution paths to emit sanitized audit entries.
+  - Added redaction unit test to ensure raw secrets are not retained.
+  - Verified with `mvn test`.
+- Task INF-001 completed:
+  - Added configurable storage mode switch (`manju.storage-mode`) with `file` and `memory` implementations.
+  - Added conditional repository wiring for project/job persistence by storage mode.
+  - Added memory-mode integration test proving create/get/job flows run without file storage.
+  - Verified with `mvn test`.

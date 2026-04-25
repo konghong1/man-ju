@@ -24,15 +24,21 @@ public class LlmFallbackService {
     private final LlmClientRegistry llmClientRegistry;
     private final ModelCatalogService modelCatalogService;
     private final ProviderStateService providerStateService;
+    private final ProviderResilienceService providerResilienceService;
+    private final LlmAuditService llmAuditService;
 
     public LlmFallbackService(
             LlmClientRegistry llmClientRegistry,
             ModelCatalogService modelCatalogService,
-            ProviderStateService providerStateService
+            ProviderStateService providerStateService,
+            ProviderResilienceService providerResilienceService,
+            LlmAuditService llmAuditService
     ) {
         this.llmClientRegistry = llmClientRegistry;
         this.modelCatalogService = modelCatalogService;
         this.providerStateService = providerStateService;
+        this.providerResilienceService = providerResilienceService;
+        this.llmAuditService = llmAuditService;
     }
 
     public LlmInvocationResult invokeWithFallback(String primaryProvider, GenerationStep step, JsonNode inputPayload) {
@@ -42,6 +48,9 @@ public class LlmFallbackService {
 
         for (String provider : chain) {
             if (!providerStateService.isEnabled(provider)) {
+                continue;
+            }
+            if (!providerResilienceService.canAttempt(provider)) {
                 continue;
             }
             attempted.add(provider);
@@ -54,6 +63,8 @@ public class LlmFallbackService {
                         0.2,
                         1600
                 ));
+                providerResilienceService.onSuccess(provider);
+                llmAuditService.recordAttempt(step, provider, model, inputPayload.toString(), true, null);
                 return new LlmInvocationResult(
                         provider,
                         model,
@@ -62,7 +73,10 @@ public class LlmFallbackService {
                         List.copyOf(attempted)
                 );
             } catch (RuntimeException ex) {
+                providerResilienceService.onFailure(provider);
+                llmAuditService.recordAttempt(step, provider, model, inputPayload.toString(), false, ex.getMessage());
                 lastException = ex;
+                continue;
             }
         }
 

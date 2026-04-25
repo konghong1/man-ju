@@ -2,5 +2,12 @@ server:
   port: 8080
 
 manju:
+  storage-mode: file
   storage-dir: data/projects
+  job-storage-dir: data/jobs
   panels-per-scene: 3
+  llm-circuit-failure-threshold: 2
+  llm-circuit-open-millis: 30000
+  llm-rate-limit-max-requests: 100
+  llm-rate-limit-window-millis: 1000
+  llm-project-budget-usd: 100.0

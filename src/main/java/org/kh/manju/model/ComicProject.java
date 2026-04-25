@@ -10,6 +10,7 @@ public record ComicProject(
         String synopsis,
         List<Episode> episodes,
         String latestJobId,
-        List<GenerationStepResult> generationTrace
+        List<GenerationStepResult> generationTrace,
+        List<ProjectVersion> versions
 ) {
 }

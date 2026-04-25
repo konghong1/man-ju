@@ -2,7 +2,7 @@ package org.kh.manju.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kh.manju.config.ManJuProperties;
-import org.kh.manju.model.ComicProject;
+import org.kh.manju.model.GenerationJob;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
@@ -17,23 +17,23 @@ import java.util.stream.Stream;
 
 @Repository
 @ConditionalOnProperty(prefix = "manju", name = "storage-mode", havingValue = "file", matchIfMissing = true)
-public class FileProjectRepository implements ProjectRepository {
+public class FileJobRepository implements JobRepository {
 
     private final ObjectMapper objectMapper;
     private final Path storageDir;
 
-    public FileProjectRepository(ObjectMapper objectMapper, ManJuProperties properties) {
+    public FileJobRepository(ObjectMapper objectMapper, ManJuProperties properties) {
         this.objectMapper = objectMapper;
-        this.storageDir = Path.of(properties.getStorageDir());
+        this.storageDir = Path.of(properties.getJobStorageDir());
         ensureDir();
     }
 
     @Override
-    public ComicProject save(ComicProject project) {
+    public GenerationJob save(GenerationJob job) {
         ensureDir();
-        Path target = pathFor(project.projectId());
+        Path target = pathFor(job.jobId());
         try {
-            String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(project);
+            String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(job);
             Files.writeString(
                     target,
                     json,
@@ -41,52 +41,54 @@ public class FileProjectRepository implements ProjectRepository {
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE
             );
-            return project;
+            return job;
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to save project " + project.projectId(), e);
+            throw new IllegalStateException("Failed to save job " + job.jobId(), e);
         }
     }
 
     @Override
-    public Optional<ComicProject> findById(String projectId) {
-        Path target = pathFor(projectId);
+    public Optional<GenerationJob> findById(String jobId) {
+        Path target = pathFor(jobId);
         if (!Files.exists(target)) {
             return Optional.empty();
         }
         try {
-            return Optional.of(objectMapper.readValue(target.toFile(), ComicProject.class));
+            return Optional.of(objectMapper.readValue(target.toFile(), GenerationJob.class));
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read project " + projectId, e);
+            throw new IllegalStateException("Failed to read job " + jobId, e);
         }
     }
 
     @Override
-    public List<ComicProject> findLatest(int limit) {
-        if (limit <= 0) {
-            return List.of();
-        }
+    public List<GenerationJob> findByProjectId(String projectId) {
+        return findAll().stream()
+                .filter(job -> projectId.equals(job.projectId()))
+                .toList();
+    }
 
+    @Override
+    public List<GenerationJob> findAll() {
         try (Stream<Path> paths = Files.list(storageDir)) {
             return paths
                     .filter(path -> path.getFileName().toString().endsWith(".json"))
                     .sorted(Comparator.comparing(this::lastModifiedSafe).reversed())
-                    .limit(limit)
-                    .map(this::readProjectSafe)
+                    .map(this::readJobSafe)
                     .toList();
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to list projects", e);
+            throw new IllegalStateException("Failed to list jobs", e);
         }
     }
 
-    private Path pathFor(String projectId) {
-        return storageDir.resolve(projectId + ".json");
+    private Path pathFor(String jobId) {
+        return storageDir.resolve(jobId + ".json");
     }
 
     private void ensureDir() {
         try {
             Files.createDirectories(storageDir);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to create storage directory: " + storageDir, e);
+            throw new IllegalStateException("Failed to create job storage directory: " + storageDir, e);
         }
     }
 
@@ -98,11 +100,11 @@ public class FileProjectRepository implements ProjectRepository {
         }
     }
 
-    private ComicProject readProjectSafe(Path path) {
+    private GenerationJob readJobSafe(Path path) {
         try {
-            return objectMapper.readValue(path.toFile(), ComicProject.class);
+            return objectMapper.readValue(path.toFile(), GenerationJob.class);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to parse project file: " + path, e);
+            throw new IllegalStateException("Failed to parse job file: " + path, e);
         }
     }
 }

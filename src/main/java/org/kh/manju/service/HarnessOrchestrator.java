@@ -1,7 +1,9 @@
 package org.kh.manju.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.kh.manju.llm.BudgetGuardService;
 import org.kh.manju.llm.LlmFallbackService;
 import org.kh.manju.llm.LlmInvocationResult;
 import org.kh.manju.llm.ModelCatalogService;
@@ -34,6 +36,7 @@ public class HarnessOrchestrator {
     private final RoutingPolicyService routingPolicyService;
     private final ModelCatalogService modelCatalogService;
     private final StructuredOutputGuard structuredOutputGuard;
+    private final BudgetGuardService budgetGuardService;
 
     public HarnessOrchestrator(
             ComicDraftGenerator draftGenerator,
@@ -41,7 +44,8 @@ public class HarnessOrchestrator {
             LlmFallbackService llmFallbackService,
             RoutingPolicyService routingPolicyService,
             ModelCatalogService modelCatalogService,
-            StructuredOutputGuard structuredOutputGuard
+            StructuredOutputGuard structuredOutputGuard,
+            BudgetGuardService budgetGuardService
     ) {
         this.draftGenerator = draftGenerator;
         this.objectMapper = objectMapper;
@@ -49,84 +53,137 @@ public class HarnessOrchestrator {
         this.routingPolicyService = routingPolicyService;
         this.modelCatalogService = modelCatalogService;
         this.structuredOutputGuard = structuredOutputGuard;
+        this.budgetGuardService = budgetGuardService;
     }
 
     public HarnessRunResult run(String projectId, CreateProjectRequest request) {
-        String jobId = "job-" + UUID.randomUUID();
+        return run(projectId, request, "job-" + UUID.randomUUID(), null, List.of());
+    }
+
+    public HarnessRunResult run(
+            String projectId,
+            CreateProjectRequest request,
+            String jobId
+    ) {
+        return run(projectId, request, jobId, null, List.of());
+    }
+
+    public HarnessRunResult run(
+            String projectId,
+            CreateProjectRequest request,
+            String jobId,
+            GenerationStep resumeFromStep,
+            List<GenerationStepResult> previousTrace
+    ) {
+        validateResumeInput(resumeFromStep, previousTrace);
         List<GenerationStepResult> trace = new ArrayList<>();
+        String synopsis = "";
+        List<Episode> episodes = List.of();
+        String versionId = null;
 
-        Map<String, Object> normalized = runStep(
-                trace,
-                projectId,
-                GenerationStep.S1_INPUT_NORMALIZE,
-                Map.of("rawInput", request),
-                () -> normalizeInput(request)
-        );
+        try {
+            Map<String, Object> normalized = isSkipped(GenerationStep.S1_INPUT_NORMALIZE, resumeFromStep)
+                    ? resumeMapOutput(trace, previousTrace, GenerationStep.S1_INPUT_NORMALIZE, new TypeReference<>() {
+                    })
+                    : runStep(
+                    trace,
+                    projectId,
+                    GenerationStep.S1_INPUT_NORMALIZE,
+                    Map.of("rawInput", request),
+                    () -> normalizeInput(request)
+            );
 
-        String synopsis = runStep(
-                trace,
-                projectId,
-                GenerationStep.S2_STORY_PLAN,
-                normalized,
-                () -> draftGenerator.buildSynopsis(request)
-        );
+            synopsis = isSkipped(GenerationStep.S2_STORY_PLAN, resumeFromStep)
+                    ? resumeOutput(trace, previousTrace, GenerationStep.S2_STORY_PLAN, JsonNode::asText)
+                    : runStep(
+                    trace,
+                    projectId,
+                    GenerationStep.S2_STORY_PLAN,
+                    normalized,
+                    () -> draftGenerator.buildSynopsis(request)
+            );
 
-        List<Episode> episodes = runStep(
-                trace,
-                projectId,
-                GenerationStep.S3_SCENE_WRITE,
-                Map.of("synopsis", synopsis, "normalized", normalized),
-                () -> draftGenerator.buildEpisodes(request)
-        );
+            episodes = isSkipped(GenerationStep.S3_SCENE_WRITE, resumeFromStep)
+                    ? resumeMapOutput(trace, previousTrace, GenerationStep.S3_SCENE_WRITE, new TypeReference<>() {
+                    })
+                    : runStep(
+                    trace,
+                    projectId,
+                    GenerationStep.S3_SCENE_WRITE,
+                    Map.of("synopsis", synopsis, "normalized", normalized),
+                    () -> draftGenerator.buildEpisodes(request)
+            );
 
-        runStep(
-                trace,
-                projectId,
-                GenerationStep.S4_PANELIZE,
-                Map.of("episodes", episodes.size()),
-                () -> Map.of(
-                        "sceneCount", episodes.stream().mapToInt(episode -> episode.scenes().size()).sum(),
-                        "panelCount", episodes.stream()
-                                .flatMap(episode -> episode.scenes().stream())
-                                .mapToInt(scene -> scene.panels().size())
-                                .sum()
-                )
-        );
+            final List<Episode> episodeSnapshot = episodes;
 
-        runStep(
-                trace,
-                projectId,
-                GenerationStep.S5_PROMPT_COMPILE,
-                Map.of("episodes", episodes.size()),
-                () -> Map.of(
-                        "compiledPrompts", episodes.stream()
-                                .flatMap(episode -> episode.scenes().stream())
-                                .flatMap(scene -> scene.panels().stream())
-                                .count()
-                )
-        );
+            if (isSkipped(GenerationStep.S4_PANELIZE, resumeFromStep)) {
+                resumeOutput(trace, previousTrace, GenerationStep.S4_PANELIZE, Function.identity());
+            } else {
+                runStep(
+                        trace,
+                        projectId,
+                        GenerationStep.S4_PANELIZE,
+                        Map.of("episodes", episodeSnapshot.size()),
+                        () -> Map.of(
+                                "sceneCount", episodeSnapshot.stream().mapToInt(episode -> episode.scenes().size()).sum(),
+                                "panelCount", episodeSnapshot.stream()
+                                        .flatMap(episode -> episode.scenes().stream())
+                                        .mapToInt(scene -> scene.panels().size())
+                                        .sum()
+                        )
+                );
+            }
 
-        runStep(
-                trace,
-                projectId,
-                GenerationStep.S6_QUALITY_GATE,
-                Map.of("synopsis", synopsis),
-                () -> Map.of(
-                        "result", "pass",
-                        "continuityScore", 0.91,
-                        "consistencyScore", 0.89
-                )
-        );
+            if (isSkipped(GenerationStep.S5_PROMPT_COMPILE, resumeFromStep)) {
+                resumeOutput(trace, previousTrace, GenerationStep.S5_PROMPT_COMPILE, Function.identity());
+            } else {
+                runStep(
+                        trace,
+                        projectId,
+                        GenerationStep.S5_PROMPT_COMPILE,
+                        Map.of("episodes", episodeSnapshot.size()),
+                        () -> Map.of(
+                                "compiledPrompts", episodeSnapshot.stream()
+                                        .flatMap(episode -> episode.scenes().stream())
+                                        .flatMap(scene -> scene.panels().stream())
+                                        .count()
+                        )
+                );
+            }
 
-        runStep(
-                trace,
-                projectId,
-                GenerationStep.S7_PERSIST_VERSION,
-                Map.of("jobId", jobId),
-                () -> Map.of("versionId", "v-" + UUID.randomUUID())
-        );
+            if (isSkipped(GenerationStep.S6_QUALITY_GATE, resumeFromStep)) {
+                resumeOutput(trace, previousTrace, GenerationStep.S6_QUALITY_GATE, Function.identity());
+            } else {
+                runStep(
+                        trace,
+                        projectId,
+                        GenerationStep.S6_QUALITY_GATE,
+                        Map.of("synopsis", synopsis),
+                        () -> Map.of(
+                                "result", "pass",
+                                "continuityScore", 0.91,
+                                "consistencyScore", 0.89
+                        )
+                );
+            }
 
-        return new HarnessRunResult(jobId, synopsis, episodes, trace);
+            Map<String, String> versionPayload = isSkipped(GenerationStep.S7_PERSIST_VERSION, resumeFromStep)
+                    ? resumeMapOutput(trace, previousTrace, GenerationStep.S7_PERSIST_VERSION, new TypeReference<>() {
+                    })
+                    : runStep(
+                    trace,
+                    projectId,
+                    GenerationStep.S7_PERSIST_VERSION,
+                    Map.of("jobId", jobId),
+                    () -> Map.of("versionId", "v-" + UUID.randomUUID())
+            );
+            versionId = versionPayload.get("versionId");
+
+            return new HarnessRunResult(jobId, versionId, synopsis, episodes, trace, true, null, null);
+        } catch (StepActionException ex) {
+            GenerationStep failedStep = trace.isEmpty() ? null : trace.get(trace.size() - 1).step();
+            return new HarnessRunResult(jobId, versionId, synopsis, episodes, trace, false, failedStep, ex.getCause().getMessage());
+        }
     }
 
     private Map<String, Object> normalizeInput(CreateProjectRequest request) {
@@ -152,7 +209,8 @@ public class HarnessOrchestrator {
             Supplier<T> action
     ) {
         Instant startedAt = Instant.now();
-        String primaryProvider = routingPolicyService.resolveProvider(projectId, step);
+        String routedProvider = routingPolicyService.resolveProvider(projectId, step);
+        String primaryProvider = budgetGuardService.selectProvider(projectId, routedProvider, trace);
         String provider = primaryProvider;
         String model = modelCatalogService.defaultModelForProvider(primaryProvider);
 
@@ -204,7 +262,7 @@ public class HarnessOrchestrator {
                     startedAt,
                     endedAt
             ));
-            throw ex;
+            throw new StepActionException(ex);
         }
     }
 
@@ -214,6 +272,74 @@ public class HarnessOrchestrator {
 
     private double estimateCostUsd(int inputTokens, int outputTokens) {
         return Math.round((inputTokens * 0.0000012 + outputTokens * 0.0000024) * 1_000_000d) / 1_000_000d;
+    }
+
+    private void validateResumeInput(GenerationStep resumeFromStep, List<GenerationStepResult> previousTrace) {
+        if (resumeFromStep != null && (previousTrace == null || previousTrace.isEmpty())) {
+            throw new IllegalArgumentException("Cannot resume without source trace.");
+        }
+    }
+
+    private boolean isSkipped(GenerationStep step, GenerationStep resumeFromStep) {
+        return resumeFromStep != null && step.ordinal() < resumeFromStep.ordinal();
+    }
+
+    private <T> T resumeOutput(
+            List<GenerationStepResult> trace,
+            List<GenerationStepResult> previousTrace,
+            GenerationStep step,
+            Function<JsonNode, T> mapper
+    ) {
+        GenerationStepResult source = requireSuccessfulStep(previousTrace, step);
+        trace.add(toSkippedResult(source));
+        return mapper.apply(source.outputPayload());
+    }
+
+    private <T> T resumeMapOutput(
+            List<GenerationStepResult> trace,
+            List<GenerationStepResult> previousTrace,
+            GenerationStep step,
+            TypeReference<T> typeReference
+    ) {
+        return resumeOutput(
+                trace,
+                previousTrace,
+                step,
+                node -> objectMapper.convertValue(node, typeReference)
+        );
+    }
+
+    private GenerationStepResult requireSuccessfulStep(List<GenerationStepResult> trace, GenerationStep step) {
+        return trace.stream()
+                .filter(item -> item.step() == step && item.status() == StepStatus.SUCCESS && item.outputPayload() != null)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Cannot resume: step output missing for " + step));
+    }
+
+    private GenerationStepResult toSkippedResult(GenerationStepResult source) {
+        Instant now = Instant.now();
+        return new GenerationStepResult(
+                source.step(),
+                StepStatus.SKIPPED,
+                source.inputPayload(),
+                source.outputPayload(),
+                source.provider(),
+                source.model(),
+                0,
+                0,
+                0,
+                0,
+                0,
+                null,
+                now,
+                now
+        );
+    }
+
+    private static final class StepActionException extends RuntimeException {
+        private StepActionException(RuntimeException cause) {
+            super(cause);
+        }
     }
 
 }

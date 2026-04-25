@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kh.manju.llm.ProviderStateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,7 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
-        "manju.storage-dir=target/test-projects"
+        "manju.storage-dir=target/test-projects",
+        "manju.job-storage-dir=target/test-jobs"
 })
 class ComicProjectControllerTest {
 
@@ -38,23 +40,14 @@ class ComicProjectControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ProviderStateService providerStateService;
+
     @BeforeEach
     void cleanup() throws IOException {
-        Path dir = Path.of("target/test-projects");
-        if (!Files.exists(dir)) {
-            return;
-        }
-
-        try (var paths = Files.walk(dir)) {
-            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
-                try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
-        Files.createDirectories(dir);
+        resetDir("target/test-projects");
+        resetDir("target/test-jobs");
+        providerStateService.states().keySet().forEach(provider -> providerStateService.update(provider, true));
     }
 
     @Test
@@ -80,6 +73,7 @@ class ComicProjectControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.projectId").exists())
                 .andExpect(jsonPath("$.latestJobId").exists())
+                .andExpect(jsonPath("$.versions.length()").value(1))
                 .andExpect(jsonPath("$.generationTrace.length()").value(7))
                 .andExpect(jsonPath("$.generationTrace[1].provider").value("openai"))
                 .andExpect(jsonPath("$.generationTrace[2].provider").value("anthropic"))
@@ -96,6 +90,59 @@ class ComicProjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value(projectId))
                 .andExpect(jsonPath("$.episodes[0].scenes[0].panels[0].imagePrompt").exists());
+    }
+
+    @Test
+    void shouldExposeJobAndVersionAndEventApis() throws Exception {
+        String payload = """
+                {
+                  "title": "job-api-test",
+                  "genre": "sci-fi",
+                  "tone": "tense",
+                  "targetAudience": "youth",
+                  "episodeLength": "SHORT",
+                  "premise": "job api coverage",
+                  "protagonist": "tester",
+                  "conflict": "event replay",
+                  "visualStyle": "mono",
+                  "language": "en"
+                }
+                """;
+
+        String createResponse = mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode projectNode = objectMapper.readTree(createResponse);
+        String projectId = projectNode.get("projectId").asText();
+        String jobId = projectNode.get("latestJobId").asText();
+
+        mockMvc.perform(get("/api/jobs/{jobId}", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value(jobId))
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.trace.length()").value(7));
+
+        String versionsResponse = mockMvc.perform(get("/api/projects/{projectId}/versions", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(versionsResponse).contains(jobId);
+
+        String sseResponse = mockMvc.perform(get("/api/jobs/{jobId}/events", jobId))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(sseResponse).contains("event:status");
+        assertThat(sseResponse).contains("event:step");
+        assertThat(sseResponse).contains(jobId);
     }
 
     @Test
@@ -272,5 +319,128 @@ class ComicProjectControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.generationTrace[1].provider").value(provider));
         }
+    }
+
+    @Test
+    void shouldRetryJobFromSpecificStepAndMarkSkippedTrace() throws Exception {
+        String payload = """
+                {
+                  "title": "retry-step-test",
+                  "genre": "sci-fi",
+                  "tone": "tense",
+                  "targetAudience": "youth",
+                  "episodeLength": "SHORT",
+                  "premise": "retry behavior",
+                  "protagonist": "tester",
+                  "conflict": "step resume",
+                  "visualStyle": "mono",
+                  "language": "en"
+                }
+                """;
+
+        String createResponse = mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode projectNode = objectMapper.readTree(createResponse);
+        String projectId = projectNode.get("projectId").asText();
+        String sourceJobId = projectNode.get("latestJobId").asText();
+
+        String retryResponse = mockMvc.perform(post("/api/jobs/{jobId}/retry", sourceJobId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "fromStep": "S4_PANELIZE"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.retriedFromJobId").value(sourceJobId))
+                .andExpect(jsonPath("$.resumeFromStep").value("S4_PANELIZE"))
+                .andExpect(jsonPath("$.status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.trace[0].status").value("SKIPPED"))
+                .andExpect(jsonPath("$.trace[1].status").value("SKIPPED"))
+                .andExpect(jsonPath("$.trace[2].status").value("SKIPPED"))
+                .andExpect(jsonPath("$.trace[3].status").value("SUCCESS"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String retriedJobId = objectMapper.readTree(retryResponse).get("jobId").asText();
+        mockMvc.perform(get("/api/projects/{projectId}", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latestJobId").value(retriedJobId))
+                .andExpect(jsonPath("$.versions.length()").value(2));
+    }
+
+    @Test
+    void shouldRollbackToSpecifiedVersion() throws Exception {
+        String payload = """
+                {
+                  "title": "rollback-test",
+                  "genre": "sci-fi",
+                  "tone": "tense",
+                  "targetAudience": "youth",
+                  "episodeLength": "SHORT",
+                  "premise": "rollback behavior",
+                  "protagonist": "tester",
+                  "conflict": "version control",
+                  "visualStyle": "mono",
+                  "language": "en"
+                }
+                """;
+
+        String createResponse = mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode projectNode = objectMapper.readTree(createResponse);
+        String projectId = projectNode.get("projectId").asText();
+        String firstJobId = projectNode.get("latestJobId").asText();
+
+        String versionsResponse = mockMvc.perform(get("/api/projects/{projectId}/versions", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String firstVersionId = objectMapper.readTree(versionsResponse).get(0).get("versionId").asText();
+
+        mockMvc.perform(post("/api/projects/{projectId}/jobs", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.versions.length()").value(2));
+
+        mockMvc.perform(post("/api/projects/{projectId}/rollback", projectId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "versionId": "%s"
+                                }
+                                """.formatted(firstVersionId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latestJobId").value(firstJobId))
+                .andExpect(jsonPath("$.versions.length()").value(2));
+    }
+
+    private void resetDir(String pathText) throws IOException {
+        Path dir = Path.of(pathText);
+        if (Files.exists(dir)) {
+            try (var paths = Files.walk(dir)) {
+                paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }
+        Files.createDirectories(dir);
     }
 }

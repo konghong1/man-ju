@@ -59,9 +59,9 @@
     "id": "BE-002",
     "module": "Backend",
     "name": "Retry/resume/versioning/SSE",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Failed steps can resume and stream events",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-001",
@@ -139,9 +139,9 @@
     "id": "LLM-010",
     "module": "LLM",
     "name": "Circuit breaker and rate limiter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Provider faults are isolated",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-011",
@@ -163,9 +163,9 @@
     "id": "LLM-013",
     "module": "LLM",
     "name": "Budget guardrails",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Over-budget requests trigger downgrade policy",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-014",
@@ -179,17 +179,17 @@
     "id": "LLM-015",
     "module": "LLM",
     "name": "Gateway audit and redaction",
-    "status": "pending",
+    "status": "done",
     "acceptance": "No secrets in logs",
-    "passes": false
+    "passes": true
   },
   {
     "id": "INF-001",
     "module": "Infra",
     "name": "Storage abstraction and migration path",
-    "status": "pending",
+    "status": "done",
     "acceptance": "File and DB modes can be switched",
-    "passes": false
+    "passes": true
   },
   {
     "id": "INF-002",
