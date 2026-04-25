@@ -35,9 +35,9 @@
     "id": "FE-003",
     "module": "Frontend",
     "name": "Workspace pages and editors",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Scene/panel edits can be saved and displayed",
-    "passes": false
+    "passes": true
   },
   {
     "id": "FE-004",

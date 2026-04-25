@@ -27,3 +27,8 @@
   - Added Pinia and persisted stores: `project/job/llm/ui`.
   - Added route-aware UI state sync and persisted panel toggles.
   - Verified with `npm run build` in frontend.
+- Task FE-003 completed:
+  - Implemented workspace draft store with Scene/Panel editable data.
+  - Added Scene Editor + Panel Editor UI in workspace route.
+  - Edits are persisted via Pinia local-storage plugin and visible immediately.
+  - Verified with `npm run build` in frontend.
