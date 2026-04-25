@@ -66,3 +66,8 @@
   - Added provider-state-aware routing fallback (disabled provider falls back to internal).
   - Extended integration tests for provider disable fallback behavior.
   - Verified with `mvn test`.
+- Task LLM-006/007/008 completed:
+  - Added provider adapters for `azure-openai`, `openai-compatible`, and `ollama`.
+  - Extended model catalog entries for the new providers.
+  - Added integration test matrix to verify route -> provider execution for all three.
+  - Verified with `mvn test`.

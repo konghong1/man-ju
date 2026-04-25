@@ -189,4 +189,52 @@ class ComicProjectControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.generationTrace[1].provider").value("internal"));
     }
+
+    @Test
+    void shouldSupportAzureCompatibleAndOllamaRoutes() throws Exception {
+        String payload = """
+                {
+                  "title": "multi-provider-route-test",
+                  "genre": "sci-fi",
+                  "tone": "tense",
+                  "targetAudience": "youth",
+                  "episodeLength": "SHORT",
+                  "premise": "provider switching",
+                  "protagonist": "tester",
+                  "conflict": "route matrix",
+                  "visualStyle": "mono",
+                  "language": "en"
+                }
+                """;
+
+        String createResponse = mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String projectId = objectMapper.readTree(createResponse).get("projectId").asText();
+
+        String[] providers = {"azure-openai", "openai-compatible", "ollama"};
+        for (String provider : providers) {
+            String routePayload = """
+                    {
+                      "routes": {
+                        "S2_STORY_PLAN": "%s"
+                      }
+                    }
+                    """.formatted(provider);
+
+            mockMvc.perform(put("/api/llm/routes/project/{projectId}", projectId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(routePayload))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.S2_STORY_PLAN").value(provider));
+
+            mockMvc.perform(post("/api/projects/{projectId}/jobs", projectId))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.generationTrace[1].provider").value(provider));
+        }
+    }
 }

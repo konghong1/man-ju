@@ -107,25 +107,25 @@
     "id": "LLM-006",
     "module": "LLM",
     "name": "Azure OpenAI adapter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Azure OpenAI call works in one harness step",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-007",
     "module": "LLM",
     "name": "OpenAI-compatible adapter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Custom baseURL providers are supported",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-008",
     "module": "LLM",
     "name": "Ollama local adapter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Local model can be used as fallback",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-009",
