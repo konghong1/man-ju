@@ -19,9 +19,9 @@
     "id": "FE-001",
     "module": "Frontend",
     "name": "Vue3 scaffold and router",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Vue app boots with defined routes",
-    "passes": false
+    "passes": true
   },
   {
     "id": "FE-002",

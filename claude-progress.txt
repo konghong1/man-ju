@@ -19,3 +19,7 @@
   - Added LLM Gateway architecture (routing/fallback/circuit-breaker/cost/metrics).
   - Expanded task breakdown with dedicated LLM module tasks.
   - Updated feature backlog to include provider-level execution items.
+- Task FE-001 completed:
+  - Scaffolded `frontend/` with Vue3 + TypeScript + Vite.
+  - Added route skeleton for project pages and model settings.
+  - Verified with `npm run build` in frontend.
