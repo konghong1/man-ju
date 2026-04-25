@@ -83,17 +83,17 @@
     "id": "LLM-003",
     "module": "LLM",
     "name": "OpenAI adapter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "OpenAI call works in one harness step",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-004",
     "module": "LLM",
     "name": "Anthropic adapter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Anthropic call works in one harness step",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-005",

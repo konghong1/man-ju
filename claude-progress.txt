@@ -52,3 +52,8 @@
   - Added LLM config APIs for providers/models and project route updates.
   - Wired orchestrator provider selection to configurable routing policy.
   - Verified with `mvn test`.
+- Task LLM-003 and LLM-004 completed:
+  - OpenAI and Anthropic adapters are executable via unified `LlmClient`.
+  - Harness default routes execute S2 with OpenAI and S3 with Anthropic.
+  - Integration tests now assert provider trace for both steps.
+  - Verified with `mvn test`.
