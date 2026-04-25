@@ -32,3 +32,8 @@
   - Added Scene Editor + Panel Editor UI in workspace route.
   - Edits are persisted via Pinia local-storage plugin and visible immediately.
   - Verified with `npm run build` in frontend.
+- Task FE-004 completed:
+  - Implemented model settings UI for provider enable/disable and model selection.
+  - Added step-level route mapping editor in `/settings/models`.
+  - Added runtime metrics table and refresh interaction.
+  - Verified with `npm run build` in frontend.

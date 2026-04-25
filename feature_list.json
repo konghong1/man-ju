@@ -43,9 +43,9 @@
     "id": "FE-004",
     "module": "Frontend",
     "name": "Model settings and metrics pages",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Can enable providers and view runtime metrics",
-    "passes": false
+    "passes": true
   },
   {
     "id": "BE-001",

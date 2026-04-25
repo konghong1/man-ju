@@ -24,11 +24,22 @@ export const useLlmStore = defineStore("llm", {
       S5_PROMPT_COMPILE: "openai",
     },
   }),
+  getters: {
+    enabledProviderKeys(state) {
+      return state.providers.filter((provider) => provider.enabled).map((provider) => provider.key);
+    },
+  },
   actions: {
     setProviderEnabled(key: string, enabled: boolean) {
       const target = this.providers.find((provider) => provider.key === key);
       if (target) {
         target.enabled = enabled;
+      }
+    },
+    setProviderModel(key: string, model: string) {
+      const target = this.providers.find((provider) => provider.key === key);
+      if (target) {
+        target.model = model;
       }
     },
     setStepRoute(step: string, providerKey: string) {
