@@ -47,6 +47,23 @@ a {
   gap: 10px;
 }
 
+.shell__switches {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.shell__switches button {
+  border: 1px solid rgba(8, 30, 54, 0.18);
+  background: #fff;
+  color: #1f2b3a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
 .shell__nav a {
   padding: 6px 10px;
   border-radius: 999px;

@@ -27,9 +27,9 @@
     "id": "FE-002",
     "module": "Frontend",
     "name": "Pinia stores for project/job/llm/ui",
-    "status": "pending",
+    "status": "done",
     "acceptance": "State survives refresh and route changes",
-    "passes": false
+    "passes": true
   },
   {
     "id": "FE-003",

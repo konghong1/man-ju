@@ -23,3 +23,7 @@
   - Scaffolded `frontend/` with Vue3 + TypeScript + Vite.
   - Added route skeleton for project pages and model settings.
   - Verified with `npm run build` in frontend.
+- Task FE-002 completed:
+  - Added Pinia and persisted stores: `project/job/llm/ui`.
+  - Added route-aware UI state sync and persisted panel toggles.
+  - Verified with `npm run build` in frontend.
