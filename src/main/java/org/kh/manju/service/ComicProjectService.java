@@ -1,5 +1,7 @@
 package org.kh.manju.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kh.manju.model.ComicProject;
 import org.kh.manju.model.CreateProjectRequest;
 import org.kh.manju.model.Episode;
@@ -24,15 +26,18 @@ import java.util.UUID;
 @Service
 public class ComicProjectService {
 
+    private final ObjectMapper objectMapper;
     private final HarnessOrchestrator harnessOrchestrator;
     private final ProjectRepository projectRepository;
     private final JobRepository jobRepository;
 
     public ComicProjectService(
+            ObjectMapper objectMapper,
             HarnessOrchestrator harnessOrchestrator,
             ProjectRepository projectRepository,
             JobRepository jobRepository
     ) {
+        this.objectMapper = objectMapper;
         this.harnessOrchestrator = harnessOrchestrator;
         this.projectRepository = projectRepository;
         this.jobRepository = jobRepository;
@@ -112,6 +117,18 @@ public class ComicProjectService {
 
     public List<ComicProject> latestProjects(int limit) {
         return projectRepository.findLatest(limit).stream().map(this::normalizeProject).toList();
+    }
+
+    public Optional<String> exportProject(String projectId, String format) {
+        return findById(projectId).map(project -> {
+            String mode = format == null || format.isBlank() ? "json" : format.trim().toLowerCase();
+            return switch (mode) {
+                case "json" -> toJson(project);
+                case "markdown", "md" -> toMarkdown(project);
+                case "prompt", "prompts" -> toPromptPack(project);
+                default -> throw new IllegalArgumentException("Unsupported export format: " + format);
+            };
+        });
     }
 
     private ComicProject runAndPersist(
@@ -270,5 +287,55 @@ public class ComicProjectService {
                 job.updatedAt(),
                 safeTrace(job.trace())
         );
+    }
+
+    private String toJson(ComicProject project) {
+        try {
+            return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(project);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize project export", e);
+        }
+    }
+
+    private String toMarkdown(ComicProject project) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("# ").append(project.input().title()).append('\n').append('\n');
+        builder.append("## Synopsis").append('\n');
+        builder.append(project.synopsis()).append('\n').append('\n');
+
+        for (Episode episode : project.episodes()) {
+            builder.append("## Episode ").append(episode.index()).append(": ").append(episode.title()).append('\n');
+            builder.append(episode.summary()).append('\n').append('\n');
+            episode.scenes().forEach(scene -> {
+                builder.append("### Scene ").append(scene.index()).append(" - ").append(scene.location()).append('\n');
+                builder.append("- Goal: ").append(scene.goal()).append('\n');
+                builder.append("- Conflict: ").append(scene.conflictBeat()).append('\n');
+                scene.panels().forEach(panel -> {
+                    builder.append("- Panel ").append(panel.index())
+                            .append(": ").append(panel.camera())
+                            .append(" | ").append(panel.dialogue())
+                            .append('\n');
+                });
+                builder.append('\n');
+            });
+        }
+        return builder.toString();
+    }
+
+    private String toPromptPack(ComicProject project) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("title: ").append(project.input().title()).append('\n');
+        project.episodes().forEach(episode ->
+                episode.scenes().forEach(scene ->
+                        scene.panels().forEach(panel ->
+                                builder.append("E").append(episode.index())
+                                        .append("-S").append(scene.index())
+                                        .append("-P").append(panel.index())
+                                        .append(": ").append(panel.imagePrompt())
+                                        .append('\n')
+                        )
+                )
+        );
+        return builder.toString();
     }
 }

@@ -111,3 +111,28 @@
   - Added conditional repository wiring for project/job persistence by storage mode.
   - Added memory-mode integration test proving create/get/job flows run without file storage.
   - Verified with `mvn test`.
+- Task INF-002 completed:
+  - Added runtime metrics aggregation service and API `GET /api/llm/metrics?from=&to=`.
+  - Metrics now support provider/model/step dimensions with success rate, p95 latency, avg cost, and token totals.
+  - Added basic alert signal generation based on low success rate and high average cost.
+  - Added integration tests for time-window queries and empty-window behavior.
+  - Verified with `mvn test`.
+- Task QA-001 completed:
+  - Added provider compatibility matrix integration test covering `openai/anthropic/gemini/azure-openai/openai-compatible/ollama/internal`.
+  - Each enabled provider is routed to a smoke step and validated by trace provider result.
+  - Verified with `mvn test`.
+- Task QA-002 completed:
+  - Added failover/chaos integration tests with injected provider failures via `@SpyBean`.
+  - Verified fallback from `openai -> anthropic` and full-chain fallback to `internal`.
+  - Verified with `mvn test`.
+- Task QA-003 completed:
+  - Added export API `GET /api/projects/{id}/export` (`json/markdown/prompt`) and export rendering logic.
+  - Added end-to-end workflow test for create -> generate -> edit(route update/rerun) -> export.
+  - Verified with `mvn test`.
+- Task OPS-001 completed:
+  - Upgraded `init.ps1` and `init.sh` to unified full-stack validation:
+    backend tests + frontend build + backend startup + frontend preview + health checks.
+  - Verified with `powershell -ExecutionPolicy Bypass -File .\init.ps1`.
+- Task OPS-002 completed:
+  - Added GitHub Actions workflow `.github/workflows/ci.yml`.
+  - CI now runs compile/build checks, full Maven tests, and unified init smoke (`./init.sh`).

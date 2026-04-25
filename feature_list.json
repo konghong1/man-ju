@@ -195,48 +195,48 @@
     "id": "INF-002",
     "module": "Infra",
     "name": "Metrics and alerting",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Provider/model/step metrics are queryable",
-    "passes": false
+    "passes": true
   },
   {
     "id": "QA-001",
     "module": "QA",
     "name": "Provider compatibility matrix tests",
-    "status": "pending",
+    "status": "done",
     "acceptance": "All enabled providers pass smoke scenarios",
-    "passes": false
+    "passes": true
   },
   {
     "id": "QA-002",
     "module": "QA",
     "name": "Failover and chaos tests",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Injected failures trigger fallback reliably",
-    "passes": false
+    "passes": true
   },
   {
     "id": "QA-003",
     "module": "QA",
     "name": "End-to-end workflow tests",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Create->generate->edit->export passes",
-    "passes": false
+    "passes": true
   },
   {
     "id": "OPS-001",
     "module": "Ops",
     "name": "Unified init script",
-    "status": "pending",
+    "status": "done",
     "acceptance": "One command validates full stack startup",
-    "passes": false
+    "passes": true
   },
   {
     "id": "OPS-002",
     "module": "Ops",
     "name": "CI/CD pipeline",
-    "status": "pending",
+    "status": "done",
     "acceptance": "PR checks include lint/test/e2e",
-    "passes": false
+    "passes": true
   }
 ]

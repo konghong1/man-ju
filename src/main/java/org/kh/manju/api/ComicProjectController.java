@@ -133,6 +133,20 @@ public class ComicProjectController {
         }
     }
 
+    @GetMapping("/projects/{projectId}/export")
+    public ResponseEntity<String> export(
+            @PathVariable String projectId,
+            @RequestParam(defaultValue = "json") String format
+    ) {
+        String content = comicProjectService.exportProject(projectId, format)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found: " + projectId));
+
+        MediaType contentType = "json".equalsIgnoreCase(format)
+                ? MediaType.APPLICATION_JSON
+                : MediaType.TEXT_PLAIN;
+        return ResponseEntity.ok().contentType(contentType).body(content);
+    }
+
     @GetMapping("/projects")
     public List<ComicProject> latest(@RequestParam(defaultValue = "10") int limit) {
         return comicProjectService.latestProjects(limit);

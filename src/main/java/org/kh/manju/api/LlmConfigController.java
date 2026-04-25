@@ -2,6 +2,8 @@ package org.kh.manju.api;
 
 import jakarta.validation.Valid;
 import org.kh.manju.llm.LlmClientRegistry;
+import org.kh.manju.llm.LlmMetricsResponse;
+import org.kh.manju.llm.LlmMetricsService;
 import org.kh.manju.llm.ModelCatalogEntry;
 import org.kh.manju.llm.ModelCatalogService;
 import org.kh.manju.llm.ProviderStateService;
@@ -16,8 +18,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.Map;
 
 @Validated
@@ -29,17 +33,20 @@ public class LlmConfigController {
     private final LlmClientRegistry llmClientRegistry;
     private final RoutingPolicyService routingPolicyService;
     private final ProviderStateService providerStateService;
+    private final LlmMetricsService llmMetricsService;
 
     public LlmConfigController(
             ModelCatalogService modelCatalogService,
             LlmClientRegistry llmClientRegistry,
             RoutingPolicyService routingPolicyService,
-            ProviderStateService providerStateService
+            ProviderStateService providerStateService,
+            LlmMetricsService llmMetricsService
     ) {
         this.modelCatalogService = modelCatalogService;
         this.llmClientRegistry = llmClientRegistry;
         this.routingPolicyService = routingPolicyService;
         this.providerStateService = providerStateService;
+        this.llmMetricsService = llmMetricsService;
     }
 
     @GetMapping("/models")
@@ -75,5 +82,13 @@ public class LlmConfigController {
     ) {
         routingPolicyService.setProjectRoutes(projectId, request.routes());
         return routingPolicyService.getEffectiveRoutes(projectId);
+    }
+
+    @GetMapping("/metrics")
+    public LlmMetricsResponse metrics(
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to
+    ) {
+        return llmMetricsService.query(from, to);
     }
 }
