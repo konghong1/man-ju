@@ -171,9 +171,9 @@
     "id": "LLM-014",
     "module": "LLM",
     "name": "Provider and route management APIs",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Frontend can configure providers/routes",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-015",

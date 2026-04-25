@@ -18,6 +18,7 @@ import java.util.Comparator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
@@ -153,5 +154,39 @@ class ComicProjectControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.projectId").value(projectId))
                 .andExpect(jsonPath("$.generationTrace[1].provider").value("gemini"));
+    }
+
+    @Test
+    void shouldFallbackToInternalWhenProviderDisabled() throws Exception {
+        mockMvc.perform(patch("/api/llm/providers/{provider}", "openai")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "enabled": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.openai").value(false));
+
+        String payload = """
+                {
+                  "title": "provider-disable-test",
+                  "genre": "sci-fi",
+                  "tone": "tense",
+                  "targetAudience": "youth",
+                  "episodeLength": "SHORT",
+                  "premise": "route fallback",
+                  "protagonist": "tester",
+                  "conflict": "provider unavailable",
+                  "visualStyle": "mono",
+                  "language": "en"
+                }
+                """;
+
+        mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.generationTrace[1].provider").value("internal"));
     }
 }
