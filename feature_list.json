@@ -67,9 +67,9 @@
     "id": "LLM-001",
     "module": "LLM",
     "name": "Unified LlmClient contract",
-    "status": "pending",
+    "status": "done",
     "acceptance": "All providers implement chat/structured/stream",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-002",

@@ -2,6 +2,9 @@ package org.kh.manju.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.kh.manju.llm.ChatRequest;
+import org.kh.manju.llm.ChatResult;
+import org.kh.manju.llm.LlmClientRegistry;
 import org.kh.manju.model.CreateProjectRequest;
 import org.kh.manju.model.Episode;
 import org.kh.manju.model.GenerationStep;
@@ -25,10 +28,16 @@ public class HarnessOrchestrator {
 
     private final ComicDraftGenerator draftGenerator;
     private final ObjectMapper objectMapper;
+    private final LlmClientRegistry llmClientRegistry;
 
-    public HarnessOrchestrator(ComicDraftGenerator draftGenerator, ObjectMapper objectMapper) {
+    public HarnessOrchestrator(
+            ComicDraftGenerator draftGenerator,
+            ObjectMapper objectMapper,
+            LlmClientRegistry llmClientRegistry
+    ) {
         this.draftGenerator = draftGenerator;
         this.objectMapper = objectMapper;
+        this.llmClientRegistry = llmClientRegistry;
     }
 
     public HarnessRunResult run(CreateProjectRequest request) {
@@ -128,12 +137,22 @@ public class HarnessOrchestrator {
         String model = modelFor(step);
 
         try {
+            JsonNode inputJson = objectMapper.valueToTree(input);
+            ChatResult llmMetadata = "internal".equals(provider)
+                    ? null
+                    : llmClientRegistry.resolve(provider).chat(new ChatRequest(
+                    "step:" + step.name(),
+                    inputJson.toString(),
+                    model,
+                    0.2,
+                    1600
+            ));
+
             T output = action.get();
             Instant endedAt = Instant.now();
-            JsonNode inputJson = objectMapper.valueToTree(input);
             JsonNode outputJson = objectMapper.valueToTree(output);
-            int inputTokens = estimateTokens(inputJson);
-            int outputTokens = estimateTokens(outputJson);
+            int inputTokens = llmMetadata == null ? estimateTokens(inputJson) : llmMetadata.inputTokens();
+            int outputTokens = llmMetadata == null ? estimateTokens(outputJson) : llmMetadata.outputTokens();
             trace.add(new GenerationStepResult(
                     step,
                     StepStatus.SUCCESS,

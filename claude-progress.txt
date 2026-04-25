@@ -42,3 +42,8 @@
   - Added step records with provider/model/tokens/cost/latency/error fields.
   - Persisted latest job ID and generation trace in `ComicProject`.
   - Verified with `mvn test`.
+- Task LLM-001 completed:
+  - Added unified `LlmClient` contract with `chat/structured/stream`.
+  - Implemented simulated provider clients (`openai/anthropic/gemini/internal`).
+  - Added `LlmClientRegistry` and wired orchestrator to provider contract.
+  - Verified with `mvn test`.
