@@ -77,3 +77,8 @@
   - Added tests for primary-disabled fallback and full external-disabled fallback.
   - Step trace now consistently records token/cost metrics from provider calls.
   - Verified with `mvn test`.
+- Task LLM-011 completed:
+  - Added structured output guard for key schema-bound steps.
+  - Added automatic output repair path and trace retry increment on repair.
+  - Added unit tests for repair and valid-pass behavior.
+  - Verified with `mvn test`.

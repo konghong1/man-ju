@@ -6,6 +6,7 @@ import org.kh.manju.llm.LlmFallbackService;
 import org.kh.manju.llm.LlmInvocationResult;
 import org.kh.manju.llm.ModelCatalogService;
 import org.kh.manju.llm.RoutingPolicyService;
+import org.kh.manju.llm.StructuredOutputGuard;
 import org.kh.manju.model.CreateProjectRequest;
 import org.kh.manju.model.Episode;
 import org.kh.manju.model.GenerationStep;
@@ -32,19 +33,22 @@ public class HarnessOrchestrator {
     private final LlmFallbackService llmFallbackService;
     private final RoutingPolicyService routingPolicyService;
     private final ModelCatalogService modelCatalogService;
+    private final StructuredOutputGuard structuredOutputGuard;
 
     public HarnessOrchestrator(
             ComicDraftGenerator draftGenerator,
             ObjectMapper objectMapper,
             LlmFallbackService llmFallbackService,
             RoutingPolicyService routingPolicyService,
-            ModelCatalogService modelCatalogService
+            ModelCatalogService modelCatalogService,
+            StructuredOutputGuard structuredOutputGuard
     ) {
         this.draftGenerator = draftGenerator;
         this.objectMapper = objectMapper;
         this.llmFallbackService = llmFallbackService;
         this.routingPolicyService = routingPolicyService;
         this.modelCatalogService = modelCatalogService;
+        this.structuredOutputGuard = structuredOutputGuard;
     }
 
     public HarnessRunResult run(String projectId, CreateProjectRequest request) {
@@ -161,20 +165,21 @@ public class HarnessOrchestrator {
             T output = action.get();
             Instant endedAt = Instant.now();
             JsonNode outputJson = objectMapper.valueToTree(output);
+            StructuredOutputGuard.GuardResult guardResult = structuredOutputGuard.ensureValid(step, outputJson);
             int inputTokens = llmMetadata.chatResult().inputTokens();
-            int outputTokens = llmMetadata.chatResult().outputTokens();
+            int outputTokens = Math.max(llmMetadata.chatResult().outputTokens(), estimateTokens(guardResult.output()));
             trace.add(new GenerationStepResult(
                     step,
                     StepStatus.SUCCESS,
                     inputJson,
-                    outputJson,
+                    guardResult.output(),
                     provider,
                     model,
                     inputTokens,
                     outputTokens,
                     estimateCostUsd(inputTokens, outputTokens),
                     Duration.between(startedAt, endedAt).toMillis(),
-                    llmMetadata.retries(),
+                    llmMetadata.retries() + (guardResult.repaired() ? 1 : 0),
                     null,
                     startedAt,
                     endedAt

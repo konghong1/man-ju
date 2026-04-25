@@ -147,9 +147,9 @@
     "id": "LLM-011",
     "module": "LLM",
     "name": "JSON schema output enforcement",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Invalid outputs are retried or repaired",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-012",
