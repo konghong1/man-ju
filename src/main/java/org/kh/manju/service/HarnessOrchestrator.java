@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.kh.manju.llm.ChatRequest;
 import org.kh.manju.llm.ChatResult;
 import org.kh.manju.llm.LlmClientRegistry;
+import org.kh.manju.llm.ModelCatalogService;
+import org.kh.manju.llm.RoutingPolicyService;
 import org.kh.manju.model.CreateProjectRequest;
 import org.kh.manju.model.Episode;
 import org.kh.manju.model.GenerationStep;
@@ -29,23 +31,30 @@ public class HarnessOrchestrator {
     private final ComicDraftGenerator draftGenerator;
     private final ObjectMapper objectMapper;
     private final LlmClientRegistry llmClientRegistry;
+    private final RoutingPolicyService routingPolicyService;
+    private final ModelCatalogService modelCatalogService;
 
     public HarnessOrchestrator(
             ComicDraftGenerator draftGenerator,
             ObjectMapper objectMapper,
-            LlmClientRegistry llmClientRegistry
+            LlmClientRegistry llmClientRegistry,
+            RoutingPolicyService routingPolicyService,
+            ModelCatalogService modelCatalogService
     ) {
         this.draftGenerator = draftGenerator;
         this.objectMapper = objectMapper;
         this.llmClientRegistry = llmClientRegistry;
+        this.routingPolicyService = routingPolicyService;
+        this.modelCatalogService = modelCatalogService;
     }
 
-    public HarnessRunResult run(CreateProjectRequest request) {
+    public HarnessRunResult run(String projectId, CreateProjectRequest request) {
         String jobId = "job-" + UUID.randomUUID();
         List<GenerationStepResult> trace = new ArrayList<>();
 
         Map<String, Object> normalized = runStep(
                 trace,
+                projectId,
                 GenerationStep.S1_INPUT_NORMALIZE,
                 Map.of("rawInput", request),
                 () -> normalizeInput(request)
@@ -53,6 +62,7 @@ public class HarnessOrchestrator {
 
         String synopsis = runStep(
                 trace,
+                projectId,
                 GenerationStep.S2_STORY_PLAN,
                 normalized,
                 () -> draftGenerator.buildSynopsis(request)
@@ -60,6 +70,7 @@ public class HarnessOrchestrator {
 
         List<Episode> episodes = runStep(
                 trace,
+                projectId,
                 GenerationStep.S3_SCENE_WRITE,
                 Map.of("synopsis", synopsis, "normalized", normalized),
                 () -> draftGenerator.buildEpisodes(request)
@@ -67,6 +78,7 @@ public class HarnessOrchestrator {
 
         runStep(
                 trace,
+                projectId,
                 GenerationStep.S4_PANELIZE,
                 Map.of("episodes", episodes.size()),
                 () -> Map.of(
@@ -80,6 +92,7 @@ public class HarnessOrchestrator {
 
         runStep(
                 trace,
+                projectId,
                 GenerationStep.S5_PROMPT_COMPILE,
                 Map.of("episodes", episodes.size()),
                 () -> Map.of(
@@ -92,6 +105,7 @@ public class HarnessOrchestrator {
 
         runStep(
                 trace,
+                projectId,
                 GenerationStep.S6_QUALITY_GATE,
                 Map.of("synopsis", synopsis),
                 () -> Map.of(
@@ -103,6 +117,7 @@ public class HarnessOrchestrator {
 
         runStep(
                 trace,
+                projectId,
                 GenerationStep.S7_PERSIST_VERSION,
                 Map.of("jobId", jobId),
                 () -> Map.of("versionId", "v-" + UUID.randomUUID())
@@ -128,13 +143,14 @@ public class HarnessOrchestrator {
 
     private <T> T runStep(
             List<GenerationStepResult> trace,
+            String projectId,
             GenerationStep step,
             Object input,
             Supplier<T> action
     ) {
         Instant startedAt = Instant.now();
-        String provider = providerFor(step);
-        String model = modelFor(step);
+        String provider = routingPolicyService.resolveProvider(projectId, step);
+        String model = modelCatalogService.defaultModelForProvider(provider);
 
         try {
             JsonNode inputJson = objectMapper.valueToTree(input);
@@ -201,19 +217,4 @@ public class HarnessOrchestrator {
         return Math.round((inputTokens * 0.0000012 + outputTokens * 0.0000024) * 1_000_000d) / 1_000_000d;
     }
 
-    private String providerFor(GenerationStep step) {
-        return switch (step) {
-            case S2_STORY_PLAN, S5_PROMPT_COMPILE -> "openai";
-            case S3_SCENE_WRITE -> "anthropic";
-            case S1_INPUT_NORMALIZE, S4_PANELIZE, S6_QUALITY_GATE, S7_PERSIST_VERSION -> "internal";
-        };
-    }
-
-    private String modelFor(GenerationStep step) {
-        return switch (step) {
-            case S2_STORY_PLAN, S5_PROMPT_COMPILE -> "gpt-5.2";
-            case S3_SCENE_WRITE -> "claude-opus-4.1";
-            case S1_INPUT_NORMALIZE, S4_PANELIZE, S6_QUALITY_GATE, S7_PERSIST_VERSION -> "rule-engine-v1";
-        };
-    }
 }

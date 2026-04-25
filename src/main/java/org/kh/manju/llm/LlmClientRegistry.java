@@ -30,4 +30,12 @@ public class LlmClientRegistry {
         }
         throw new IllegalStateException("No LLM clients available");
     }
+
+    public boolean hasProvider(String provider) {
+        return byProvider.containsKey(provider);
+    }
+
+    public Map<String, LlmClient> providers() {
+        return byProvider;
+    }
 }

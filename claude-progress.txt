@@ -47,3 +47,8 @@
   - Implemented simulated provider clients (`openai/anthropic/gemini/internal`).
   - Added `LlmClientRegistry` and wired orchestrator to provider contract.
   - Verified with `mvn test`.
+- Task LLM-002 completed:
+  - Added model catalog service and step-level routing policy service.
+  - Added LLM config APIs for providers/models and project route updates.
+  - Wired orchestrator provider selection to configurable routing policy.
+  - Verified with `mvn test`.

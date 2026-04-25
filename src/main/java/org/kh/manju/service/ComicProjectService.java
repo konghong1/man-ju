@@ -22,9 +22,10 @@ public class ComicProjectService {
     }
 
     public ComicProject createProject(CreateProjectRequest request) {
-        var harnessResult = harnessOrchestrator.run(request);
+        String projectId = "proj-" + UUID.randomUUID();
+        var harnessResult = harnessOrchestrator.run(projectId, request);
         ComicProject project = new ComicProject(
-                "proj-" + UUID.randomUUID(),
+                projectId,
                 Instant.now(),
                 request,
                 harnessResult.synopsis(),

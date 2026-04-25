@@ -75,9 +75,9 @@
     "id": "LLM-002",
     "module": "LLM",
     "name": "Model registry and routing policy",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Step-level routing can be configured",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-003",
