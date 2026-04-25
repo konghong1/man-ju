@@ -40,6 +40,23 @@ public class ComicProjectService {
         return projectRepository.findById(projectId);
     }
 
+    public Optional<ComicProject> rerunProject(String projectId) {
+        return projectRepository.findById(projectId)
+                .map(existing -> {
+                    var harnessResult = harnessOrchestrator.run(existing.projectId(), existing.input());
+                    ComicProject updated = new ComicProject(
+                            existing.projectId(),
+                            existing.createdAt(),
+                            existing.input(),
+                            harnessResult.synopsis(),
+                            harnessResult.episodes(),
+                            harnessResult.jobId(),
+                            harnessResult.trace()
+                    );
+                    return projectRepository.save(updated);
+                });
+    }
+
     public List<ComicProject> latestProjects(int limit) {
         return projectRepository.findLatest(limit);
     }

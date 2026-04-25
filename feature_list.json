@@ -99,9 +99,9 @@
     "id": "LLM-005",
     "module": "LLM",
     "name": "Gemini adapter",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Gemini call works in one harness step",
-    "passes": false
+    "passes": true
   },
   {
     "id": "LLM-006",

@@ -47,6 +47,12 @@ public class ComicProjectController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found: " + projectId));
     }
 
+    @PostMapping("/projects/{projectId}/jobs")
+    public ComicProject rerun(@PathVariable String projectId) {
+        return comicProjectService.rerunProject(projectId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Project not found: " + projectId));
+    }
+
     @GetMapping("/projects")
     public List<ComicProject> latest(@RequestParam(defaultValue = "10") int limit) {
         return comicProjectService.latestProjects(limit);

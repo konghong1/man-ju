@@ -57,3 +57,7 @@
   - Harness default routes execute S2 with OpenAI and S3 with Anthropic.
   - Integration tests now assert provider trace for both steps.
   - Verified with `mvn test`.
+- Task LLM-005 completed:
+  - Added project rerun endpoint `POST /api/projects/{id}/jobs` to re-execute harness on existing input.
+  - Added route configuration flow + test proving `S2_STORY_PLAN -> gemini` takes effect.
+  - Verified with `mvn test`.

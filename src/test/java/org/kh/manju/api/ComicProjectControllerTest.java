@@ -19,9 +19,10 @@ import java.util.Comparator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -105,5 +106,52 @@ class ComicProjectControllerTest {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(forwardedUrl("index.html"));
+    }
+
+    @Test
+    void shouldApplyProjectLevelRouteWhenRerunning() throws Exception {
+        String payload = """
+                {
+                  "title": "路由测试",
+                  "genre": "科幻",
+                  "tone": "紧张",
+                  "targetAudience": "青年",
+                  "episodeLength": "SHORT",
+                  "premise": "测试步骤路由",
+                  "protagonist": "路由员",
+                  "conflict": "模型切换",
+                  "visualStyle": "黑白网点",
+                  "language": "zh-CN"
+                }
+                """;
+
+        String createResponse = mockMvc.perform(post("/api/projects")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String projectId = objectMapper.readTree(createResponse).get("projectId").asText();
+
+        String routePayload = """
+                {
+                  "routes": {
+                    "S2_STORY_PLAN": "gemini"
+                  }
+                }
+                """;
+
+        mockMvc.perform(put("/api/llm/routes/project/{projectId}", projectId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(routePayload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.S2_STORY_PLAN").value("gemini"));
+
+        mockMvc.perform(post("/api/projects/{projectId}/jobs", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.projectId").value(projectId))
+                .andExpect(jsonPath("$.generationTrace[1].provider").value("gemini"));
     }
 }
