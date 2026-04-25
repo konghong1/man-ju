@@ -8,6 +8,8 @@ public record ComicProject(
         Instant createdAt,
         CreateProjectRequest input,
         String synopsis,
-        List<Episode> episodes
+        List<Episode> episodes,
+        String latestJobId,
+        List<GenerationStepResult> generationTrace
 ) {
 }

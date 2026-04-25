@@ -13,21 +13,24 @@ import java.util.UUID;
 @Service
 public class ComicProjectService {
 
-    private final ComicDraftGenerator draftGenerator;
+    private final HarnessOrchestrator harnessOrchestrator;
     private final ProjectRepository projectRepository;
 
-    public ComicProjectService(ComicDraftGenerator draftGenerator, ProjectRepository projectRepository) {
-        this.draftGenerator = draftGenerator;
+    public ComicProjectService(HarnessOrchestrator harnessOrchestrator, ProjectRepository projectRepository) {
+        this.harnessOrchestrator = harnessOrchestrator;
         this.projectRepository = projectRepository;
     }
 
     public ComicProject createProject(CreateProjectRequest request) {
+        var harnessResult = harnessOrchestrator.run(request);
         ComicProject project = new ComicProject(
                 "proj-" + UUID.randomUUID(),
                 Instant.now(),
                 request,
-                draftGenerator.buildSynopsis(request),
-                draftGenerator.buildEpisodes(request)
+                harnessResult.synopsis(),
+                harnessResult.episodes(),
+                harnessResult.jobId(),
+                harnessResult.trace()
         );
         return projectRepository.save(project);
     }

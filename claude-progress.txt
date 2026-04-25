@@ -37,3 +37,8 @@
   - Added step-level route mapping editor in `/settings/models`.
   - Added runtime metrics table and refresh interaction.
   - Verified with `npm run build` in frontend.
+- Task BE-001 completed:
+  - Added S1~S7 harness orchestrator with per-step trace capture.
+  - Added step records with provider/model/tokens/cost/latency/error fields.
+  - Persisted latest job ID and generation trace in `ComicProject`.
+  - Verified with `mvn test`.

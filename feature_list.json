@@ -51,9 +51,9 @@
     "id": "BE-001",
     "module": "Backend",
     "name": "Harness orchestrator S1-S7",
-    "status": "pending",
+    "status": "done",
     "acceptance": "Step outputs and metrics are persisted",
-    "passes": false
+    "passes": true
   },
   {
     "id": "BE-002",
