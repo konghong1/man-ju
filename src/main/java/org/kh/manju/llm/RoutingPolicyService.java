@@ -45,11 +45,23 @@ public class RoutingPolicyService {
     }
 
     public void setProjectRoutes(String projectId, Map<GenerationStep, String> routes) {
+        if (routes.isEmpty()) {
+            throw new IllegalArgumentException("routes must not be empty");
+        }
+
         Map<GenerationStep, String> filtered = new EnumMap<>(GenerationStep.class);
         for (Map.Entry<GenerationStep, String> entry : routes.entrySet()) {
-            if (llmClientRegistry.hasProvider(entry.getValue())) {
-                filtered.put(entry.getKey(), entry.getValue());
+            if (entry.getKey() == null) {
+                throw new IllegalArgumentException("route step must not be null");
             }
+            String provider = entry.getValue();
+            if (provider == null || provider.isBlank()) {
+                throw new IllegalArgumentException("route provider must not be blank");
+            }
+            if (!llmClientRegistry.hasProvider(provider)) {
+                throw new IllegalArgumentException("Unknown provider: " + provider);
+            }
+            filtered.put(entry.getKey(), provider);
         }
         projectRoutes.put(projectId, filtered);
     }

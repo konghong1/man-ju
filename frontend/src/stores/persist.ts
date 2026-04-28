@@ -11,17 +11,34 @@ function safeParse(value: string) {
 }
 
 export function localStoragePersistPlugin({ store }: PiniaPluginContext) {
-  const key = STORAGE_PREFIX + store.$id;
-  const cached = localStorage.getItem(key);
+  if (typeof localStorage === "undefined") {
+    return;
+  }
 
-  if (cached) {
-    const parsed = safeParse(cached);
-    if (parsed && typeof parsed === "object") {
-      store.$patch(parsed);
+  const key = STORAGE_PREFIX + store.$id;
+  let storageAvailable = true;
+
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      const parsed = safeParse(cached);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        store.$patch(parsed);
+      }
     }
+  } catch {
+    storageAvailable = false;
   }
 
   store.$subscribe((_mutation, state) => {
-    localStorage.setItem(key, JSON.stringify(state));
+    if (!storageAvailable) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch {
+      storageAvailable = false;
+    }
   });
 }

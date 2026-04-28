@@ -149,6 +149,9 @@ public class ComicProjectController {
 
     @GetMapping("/projects")
     public List<ComicProject> latest(@RequestParam(defaultValue = "10") int limit) {
+        if (limit < 1 || limit > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "limit must be between 1 and 100");
+        }
         return comicProjectService.latestProjects(limit);
     }
 }

@@ -428,6 +428,40 @@ class ComicProjectControllerTest {
                 .andExpect(jsonPath("$.versions.length()").value(2));
     }
 
+    @Test
+    void shouldRejectInvalidProjectListLimit() throws Exception {
+        mockMvc.perform(get("/api/projects")
+                        .queryParam("limit", "0"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/projects")
+                        .queryParam("limit", "101"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldRejectInvalidProjectRoutes() throws Exception {
+        mockMvc.perform(put("/api/llm/routes/project/{projectId}", "proj-test")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "routes": {}
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/llm/routes/project/{projectId}", "proj-test")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "routes": {
+                                    "S2_STORY_PLAN": "missing-provider"
+                                  }
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
     private void resetDir(String pathText) throws IOException {
         Path dir = Path.of(pathText);
         if (Files.exists(dir)) {

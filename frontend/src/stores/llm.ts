@@ -69,15 +69,24 @@ export const useLlmStore = defineStore("llm", {
     },
     async setProviderEnabled(key: string, enabled: boolean) {
       const target = this.providers.find((provider) => provider.key === key);
+      const previousEnabled = target?.enabled;
       if (target) {
         target.enabled = enabled;
       }
       try {
-        await apiRequest<Record<string, boolean>>(`/api/llm/providers/${key}`, {
+        const states = await apiRequest<Record<string, boolean>>(`/api/llm/providers/${key}`, {
           method: "PATCH",
           body: JSON.stringify({ enabled }),
         });
+        for (const provider of this.providers) {
+          if (states[provider.key] !== undefined) {
+            provider.enabled = states[provider.key];
+          }
+        }
       } catch (error) {
+        if (target && previousEnabled !== undefined) {
+          target.enabled = previousEnabled;
+        }
         console.warn(`Failed to update provider ${key}`, error);
       }
     },
@@ -88,13 +97,15 @@ export const useLlmStore = defineStore("llm", {
       }
     },
     async setStepRoute(step: string, providerKey: string, projectId = DEFAULT_PROJECT_ID) {
+      const previousRoutes = { ...this.routeByStep };
       this.routeByStep[step] = providerKey;
       try {
-        await apiRequest<Record<string, string>>(`/api/llm/routes/project/${projectId}`, {
+        this.routeByStep = await apiRequest<Record<string, string>>(`/api/llm/routes/project/${projectId}`, {
           method: "PUT",
           body: JSON.stringify({ routes: this.routeByStep }),
         });
       } catch (error) {
+        this.routeByStep = previousRoutes;
         console.warn("Failed to update step route", error);
       }
     },
